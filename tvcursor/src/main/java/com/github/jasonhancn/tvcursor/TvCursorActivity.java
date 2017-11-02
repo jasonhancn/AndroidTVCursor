@@ -23,6 +23,9 @@ public class TvCursorActivity extends AppCompatActivity{
         initCursor();
     }
 
+    // 判断是否弹出了输入法框
+    // 当失去焦点时，如果显示部分和屏幕本身的高度差大于100，则视为弹出了输入法框
+    // 当弹出输入法框，停止转发Dpad的按键事件
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);

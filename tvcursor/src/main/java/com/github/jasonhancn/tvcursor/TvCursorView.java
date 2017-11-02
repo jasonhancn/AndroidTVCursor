@@ -29,6 +29,12 @@ class TvCursorView extends FrameLayout {
     private static final int MOUSE_START_Y = 350;
     // 鼠标的移动步长
     private static final int MOUSE_MOVE_STEP = 20;
+    // 两次加速之间的时间间隔
+    private static final int defTimes = 400;
+    // 移动的最高速度系数
+    private static final int defMaxSpeed = 5;
+    // 速度系数，每次的移动距离为移动步长*速度系数
+    private int speedCoefficient = 1;
     // 鼠标指针大小的偏移量
     private int mOffsetX;
     private int mOffsetY;
@@ -38,19 +44,16 @@ class TvCursorView extends FrameLayout {
     // 鼠标的前一位置
     private int mLastCursorX = mCursorX;
     private int mLastCursorY = mCursorY;
-
-    private static final int defTimes = 400;
-    private static final int defMaxSpeed = 7;
-
+    // 是否已经显示了鼠标指针
     private boolean isShowCursor = false;
-    private boolean isKeyEventConsumed = false;
-    private int mSpeed = 1;
-    private long mLastEventTime;
+    // 上一次移动的执行时间
+    private long mLastMoveTime;
 
     public TvCursorView(@NonNull Context context) {
         super(context);
     }
 
+    // 设置用于传递点击事件的目标View（即传给鼠标View的Parent ViewGroup）
     TvCursorView(Context context, View targetView) {
         super(context);
         mTargetView = targetView;
@@ -63,6 +66,24 @@ class TvCursorView extends FrameLayout {
         mOffsetY = mCursorBitmap.getHeight();
     }
 
+    // 用于转换素材到Bitmap（并统一尺寸）
+    private Bitmap drawableToBitmap(Drawable drawable) {
+        BitmapDrawable bd = (BitmapDrawable) drawable;
+        Bitmap bitmap = bd.getBitmap();
+        return Bitmap.createScaledBitmap(bitmap, 50, 50, true);
+    }
+
+    // 是否显示了鼠标指针
+    boolean isShowCursor() {
+        return isShowCursor;
+    }
+
+    // 设置鼠标指针的显示与否
+    void setShowCursor(boolean is) {
+        isShowCursor = is;
+    }
+
+    // 确保指针的大小正确
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -71,6 +92,7 @@ class TvCursorView extends FrameLayout {
         }
     }
 
+    // 放置鼠标指针的view
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         if (mCursorView != null) {
@@ -78,101 +100,66 @@ class TvCursorView extends FrameLayout {
         }
     }
 
-    boolean isShowCursor() {
-        return isShowCursor;
-    }
-
-    void setShowCursor(boolean is) {
-        isShowCursor = is;
-    }
-
-    private Bitmap drawableToBitmap(Drawable drawable) {
-        BitmapDrawable bd = (BitmapDrawable) drawable;
-        Bitmap bitmap = bd.getBitmap();
-        return Bitmap.createScaledBitmap(bitmap, 50, 50, true);
-    }
-
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        // 除了已经定义的事件之外，抛出其他事件
-        Log.i("dispatchKeyEvent", "action=" + event.getAction() + " keycode=" + event.getKeyCode());
-        switch (event.getKeyCode()) {
-            case KEYCODE_UP:
-            case KEYCODE_DOWN:
-            case KEYCODE_LEFT:
-            case KEYCODE_RIGHT:
-            case KEYCODE_CENTER:
-                if (isShowCursor()) {
-                    return onDpadClicked(event);
-                }
-            default:
-                break;
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
     boolean onDpadClicked(KeyEvent event) {
         if (!isShowCursor) {
             return false;
         }
         if (event.getKeyCode() == KEYCODE_CENTER) {
-            Log.d("click", "center");
-//                sendMotionEvent(mCursorX + mOffsetX, mCursorY + mOffsetY, event.getAction());
-            sendMotionEvent(mCursorX, mCursorY, event.getAction());
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                sendMotionEvent(mCursorX + mOffsetX / 3, mCursorY + mOffsetY / 5, MotionEvent.ACTION_DOWN);
+            } else if (event.getAction() == KeyEvent.ACTION_UP) {
+                sendMotionEvent(mCursorX + mOffsetX / 3, mCursorY + mOffsetY / 5, MotionEvent.ACTION_UP);
+            }
         } else {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (!isKeyEventConsumed) {
-                    if (event.getDownTime() - mLastEventTime < defTimes) {
-                        if (mSpeed < defMaxSpeed) {
-                            mSpeed++;
-                        }
-                    } else {
-                        mSpeed = 1;
+                // 如果两次点击之间的事件间隔小于预先设定的事件间隔，进行线性加速
+                if (event.getDownTime() - mLastMoveTime < defTimes) {
+                    if (speedCoefficient < defMaxSpeed) {
+                        speedCoefficient++;
                     }
+                } else {
+                    // 超过了时间间隔的话，就还原初始速度
+                    speedCoefficient = 1;
                 }
-                mLastEventTime = event.getDownTime();
-                dispatchKeyEventToCursor(event);
-                isKeyEventConsumed = true;
-            } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (!isKeyEventConsumed) {
-                    dispatchKeyEventToCursor(event);
-                }
-                isKeyEventConsumed = false;
+                mLastMoveTime = event.getDownTime();
+                moveCursor(event, speedCoefficient);
             }
         }
         return true;
     }
 
-    private void dispatchKeyEventToCursor(KeyEvent event) {
-        if (event.getKeyCode() == KEYCODE_CENTER) {
-            sendMotionEvent(mCursorX + mOffsetX, mCursorY + mOffsetY, event.getAction());
-        } else {
-            moveCursor(event, mSpeed);
-        }
-    }
-
+    // 移动鼠标指针
+    // 因为指针的素材并不是完全充满的，所以有一些位置上的调整，以保证指针尖端为点击的位置
     private void moveCursor(KeyEvent event, int times) {
         int mMoveDis = times * MOUSE_MOVE_STEP;
         switch (event.getKeyCode()) {
             case KEYCODE_UP:
-                if (mCursorY - mMoveDis >= 0) {
+                if (mCursorY - mMoveDis >= -mOffsetY / 5) {
                     mCursorY = mCursorY - mMoveDis;
                 } else {
-                    mCursorY = 0;
+                    mCursorY = -mOffsetY / 5;
                 }
                 break;
             case KEYCODE_LEFT:
-                mCursorX = (mCursorX - mMoveDis > 0) ? mCursorX - mMoveDis : 0;
+                if (mCursorX - mMoveDis > -mOffsetX / 3) {
+                    mCursorX = mCursorX - mMoveDis;
+                } else {
+                    mCursorX = -mOffsetX / 3;
+                }
                 break;
             case KEYCODE_DOWN:
-                if (mCursorY + mMoveDis < getMeasuredHeight() - mMoveDis) {
+                if (mCursorY + mMoveDis < getMeasuredHeight() - mMoveDis - mOffsetY / 5) {
                     mCursorY = mCursorY + mMoveDis;
                 } else {
-                    mCursorY = getMeasuredHeight() - mOffsetY;
+                    mCursorY = getMeasuredHeight() - mOffsetY / 5;
                 }
                 break;
             case KEYCODE_RIGHT:
-                mCursorX = (mCursorX + mMoveDis < getMeasuredWidth() - mOffsetX) ? mCursorX + mMoveDis : getMeasuredWidth() - mOffsetX;
+                if (mCursorX + mMoveDis < getMeasuredWidth() - mOffsetX / 3) {
+                    mCursorX = mCursorX + mMoveDis;
+                } else {
+                    mCursorX = getMeasuredWidth() - mOffsetX / 3;
+                }
                 break;
         }
         if (mLastCursorX == mCursorX && mLastCursorY == mCursorY) {
@@ -181,23 +168,31 @@ class TvCursorView extends FrameLayout {
         mLastCursorX = mCursorX;
         mLastCursorY = mCursorY;
         requestLayout();
-        sendMotionEvent(mCursorX + mOffsetX, mCursorY + mOffsetY, MotionEvent.ACTION_HOVER_MOVE);
+//        sendMotionEvent(mCursorX, mCursorY, MotionEvent.ACTION_HOVER_MOVE);
+        // 把用于对齐指针所加的偏移量消除
+        sendMotionEvent(mCursorX + mOffsetX / 3, mCursorY + mOffsetY / 5, MotionEvent.ACTION_MOVE);
     }
 
+    // 发送鼠标的相关事件
     private void sendMotionEvent(int x, int y, int action) {
         long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
         int metaState = 0;
         MotionEvent motionEvent = MotionEvent.obtain(downTime, eventTime, action, x, y, metaState);
-        if (action == MotionEvent.ACTION_HOVER_MOVE) {
-            motionEvent.setSource(InputDevice.SOURCE_CLASS_POINTER);
-            Log.d("GenericMotionEvent", x + "-" + y);
-            dispatchGenericMotionEvent(motionEvent);
-        } else {
-            Log.d("TouchEvent", x + "-" + y);
-            if (mTargetView != null) {
-                mTargetView.dispatchTouchEvent(motionEvent);
-            }
-        }
+        motionEvent.setSource(InputDevice.SOURCE_CLASS_POINTER);
+        Log.d("Cursor Event", x + "-" + y + "-" + action);
+        mTargetView.dispatchGenericMotionEvent(motionEvent);
+//        // 鼠标的移动事件
+//        if (action == MotionEvent.ACTION_MOVE) {
+//            motionEvent.setSource(InputDevice.SOURCE_CLASS_POINTER);
+//            Log.d("Cursor Move", x + "-" + y);
+//            dispatchGenericMotionEvent(motionEvent);
+//        } else {
+//            // 鼠标的点击事件
+//            Log.d("Mouse Click", x + "-" + y);
+//            if (mTargetView != null) {
+//                mTargetView.dispatchGenericMotionEvent(motionEvent);
+//            }
+//        }
     }
 }

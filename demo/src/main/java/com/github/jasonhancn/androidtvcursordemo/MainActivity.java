@@ -25,7 +25,7 @@ public class MainActivity extends TvCursorActivity {
         webSetting.setJavaScriptEnabled(true);
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
-        webView.loadUrl("http://www.baidu.com");
+        webView.loadUrl("https://muro.deviantart.com/");
         webView.requestFocus();
     }
 }
