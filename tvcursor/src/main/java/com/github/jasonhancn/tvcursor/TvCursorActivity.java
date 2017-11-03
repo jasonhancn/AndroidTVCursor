@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
@@ -19,6 +20,7 @@ public class TvCursorActivity extends AppCompatActivity {
     public void setContentView(int layoutResID) {
         LayoutInflater inflater = getLayoutInflater();
         contentView = (ViewGroup) inflater.inflate(layoutResID, null);
+        contentView.requestDisallowInterceptTouchEvent(true);
         setContentView(contentView);
         initCursor();
     }
@@ -56,6 +58,18 @@ public class TvCursorActivity extends AppCompatActivity {
 
     public boolean isShowCursor() {
         return tvCursorManager.isShowCursor();
+    }
+
+    public void setScrollTargetView(View view){
+        tvCursorManager.setScrollTargetView(view);
+    }
+
+    public void setCursorSize(int size){
+        tvCursorManager.setCursorSize(size);
+    }
+
+    public void setCursorResource(int pointerResource, int pointerSize, int pointerX, int pointerY) {
+        tvCursorManager.setCursorResource(pointerResource, pointerSize, pointerX, pointerY);
     }
 
     @Override

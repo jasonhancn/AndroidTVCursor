@@ -42,4 +42,16 @@ class TvCursorManager {
             mParentView.addView(mCursorView, lp);
         }
     }
+
+    void setScrollTargetView(View scrollTargetView) {
+        mCursorView.setScrollTargetView(scrollTargetView);
+    }
+
+    void setCursorResource(int pointerResource, int pointerSize, int pointerX, int pointerY) {
+        mCursorView.setPointerResource(pointerResource, pointerX, pointerY, pointerSize);
+    }
+
+    void setCursorSize(int pointerSize) {
+        mCursorView.setPointerSize(pointerSize);
+    }
 }

@@ -1,7 +1,9 @@
 package com.github.jasonhancn.tvcursor;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
@@ -45,16 +47,37 @@ class TvCursorView extends FrameLayout {
     private int mLastCursorX = mCursorX;
     private int mLastCursorY = mCursorY;
     // 鼠标指针尖端的相对于素材左上角的偏移量
-    private int mPointerX = mOffsetX / 3;
-    private int mPointerY = mOffsetY / 5;
+    private int mPointerX;
+    private int mPointerY;
     // 是否已经显示了鼠标指针
     private boolean isShowCursor = false;
     // 上一次移动的执行时间
     private long mLastMoveTime;
-    // 上一次点击确定键的时间（随长按这个时间会不断更新）
-    private long mLastClickTime;
     // 是否执行拖拽操作
     private boolean isDragMode = false;
+    // 需要滚动的view
+    private View scrollTargetView = null;
+    // 鼠标的资源文件
+    private int pointerResource = R.mipmap.shubiao;
+    // 鼠标的大小
+    private int pointerSize = 50;
+
+    public void setScrollTargetView(View scrollTargetView) {
+        this.scrollTargetView = scrollTargetView;
+    }
+
+    public void setPointerResource(int pointerResource, int mPointerX, int mPointerY, int pointerSize) {
+        this.pointerResource = pointerResource;
+        this.mPointerX = mPointerX;
+        this.mPointerY = mPointerY;
+        setPointerSize(pointerSize);
+    }
+
+    public void setPointerSize(int pointerSize) {
+        this.pointerSize = pointerSize;
+        setCursorView();
+        requestLayout();
+    }
 
     public TvCursorView(@NonNull Context context) {
         super(context);
@@ -64,20 +87,30 @@ class TvCursorView extends FrameLayout {
     TvCursorView(Context context, View targetView) {
         super(context);
         mTargetView = targetView;
-        Drawable drawable = getResources().getDrawable(R.mipmap.shubiao);
-        mCursorBitmap = drawableToBitmap(drawable);
         mCursorView = new ImageView(getContext());
-        mCursorView.setImageBitmap(mCursorBitmap);
         addView(mCursorView, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-        mOffsetX = mCursorBitmap.getWidth();
-        mOffsetY = mCursorBitmap.getHeight();
+        setCursorView();
+        mPointerX = mOffsetX / 3;
+        mPointerY = mOffsetY / 5;
     }
 
     // 用于转换素材到Bitmap（并统一尺寸）
-    private Bitmap drawableToBitmap(Drawable drawable) {
-        BitmapDrawable bd = (BitmapDrawable) drawable;
-        Bitmap bitmap = bd.getBitmap();
-        return Bitmap.createScaledBitmap(bitmap, 50, 50, true);
+    private Bitmap drawableToBitmap() {
+        Resources resources;
+        if (pointerResource == R.mipmap.shubiao) {
+            resources = getResources();
+        } else {
+            resources = mTargetView.getContext().getResources();
+        }
+        Bitmap bitmap = BitmapFactory.decodeResource(resources, pointerResource);
+        return Bitmap.createScaledBitmap(bitmap, pointerSize, pointerSize, true);
+    }
+
+    private void setCursorView() {
+        mCursorBitmap = drawableToBitmap();
+        mCursorView.setImageBitmap(mCursorBitmap);
+        mOffsetX = mCursorBitmap.getWidth();
+        mOffsetY = mCursorBitmap.getHeight();
     }
 
     // 是否显示了鼠标指针
@@ -103,7 +136,13 @@ class TvCursorView extends FrameLayout {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         if (mCursorView != null) {
-            mCursorView.layout(mCursorX, mCursorY, mCursorX + mCursorView.getMeasuredWidth(), mCursorY + mCursorView.getMeasuredHeight());
+            // 添加偏移量，让指针尖端对准实际位置（图片的左上角）
+            mCursorView.layout(
+                    mCursorX - mPointerX,
+                    mCursorY - mPointerY,
+                    mCursorX + mOffsetX - mPointerX,
+                    mCursorY + mOffsetY - mPointerY
+            );
         }
     }
 
@@ -113,13 +152,14 @@ class TvCursorView extends FrameLayout {
         }
         if (event.getKeyCode() == KEYCODE_CENTER) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                // 按下确定键进入拖动模式（长按相当于不断点击，会维持拖动模式）
                 isDragMode = true;
-                mLastClickTime = event.getDownTime();
             } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (event.getDownTime() - mLastMoveTime > defTimes) {
+                // 如果在指定时间内抬起，则认为是一次点击
+                if (event.getDownTime() - mLastMoveTime > defTimes / 2) {
                     isDragMode = false;
-                    sendMotionEvent(mCursorX + mPointerX, mCursorY + mPointerY, MotionEvent.ACTION_DOWN);
-                    sendMotionEvent(mCursorX + mPointerX, mCursorY + mPointerY, MotionEvent.ACTION_UP);
+                    sendMotionEvent(mCursorX, mCursorY, MotionEvent.ACTION_DOWN);
+                    sendMotionEvent(mCursorX, mCursorY, MotionEvent.ACTION_UP);
                 }
             }
         } else {
@@ -134,10 +174,11 @@ class TvCursorView extends FrameLayout {
                     speedCoefficient = 1;
                 }
                 mLastMoveTime = event.getDownTime();
-                if (isDragMode && event.getDownTime() - mLastClickTime < defTimes) {
-                    sendMotionEvent(mCursorX + mPointerX, mCursorY + mPointerY, MotionEvent.ACTION_DOWN);
+                // 如果是拖动的情况，就模拟拖动的动作，反之仅移动指针
+                if (isDragMode) {
+                    sendMotionEvent(mCursorX, mCursorY, MotionEvent.ACTION_DOWN);
                     moveCursor(event, speedCoefficient);
-                    sendMotionEvent(mCursorX + mPointerX, mCursorY + mPointerY, MotionEvent.ACTION_UP);
+                    sendMotionEvent(mCursorX, mCursorY, MotionEvent.ACTION_UP);
                     isDragMode = false;
                 } else {
                     moveCursor(event, speedCoefficient);
@@ -148,36 +189,41 @@ class TvCursorView extends FrameLayout {
     }
 
     // 移动鼠标指针
-    // 因为指针的素材并不是完全充满的，所以有一些位置上的调整，以保证指针尖端为点击的位置
     private void moveCursor(KeyEvent event, int times) {
         int mMoveDis = times * MOUSE_MOVE_STEP;
         switch (event.getKeyCode()) {
             case KEYCODE_UP:
-                if (mCursorY - mMoveDis >= -mPointerY) {
+                if (mCursorY - mMoveDis >= 0) {
                     mCursorY = mCursorY - mMoveDis;
                 } else {
-                    mCursorY = -mPointerY;
+                    mCursorY = 0;
+                    if (scrollTargetView != null) {
+                        scrollTargetView.scrollBy(0, -mMoveDis);
+                    }
                 }
                 break;
             case KEYCODE_LEFT:
-                if (mCursorX - mMoveDis > -mPointerX) {
+                if (mCursorX - mMoveDis > 0) {
                     mCursorX = mCursorX - mMoveDis;
                 } else {
-                    mCursorX = -mPointerX;
+                    mCursorX = 0;
                 }
                 break;
             case KEYCODE_DOWN:
-                if (mCursorY + mMoveDis < getMeasuredHeight() - mMoveDis - mPointerY) {
+                if (mCursorY + mMoveDis < getMeasuredHeight()) {
                     mCursorY = mCursorY + mMoveDis;
                 } else {
-                    mCursorY = getMeasuredHeight() - mPointerY;
+                    mCursorY = getMeasuredHeight();
+                    if (scrollTargetView != null) {
+                        scrollTargetView.scrollBy(0, mMoveDis);
+                    }
                 }
                 break;
             case KEYCODE_RIGHT:
-                if (mCursorX + mMoveDis < getMeasuredWidth() - mPointerX) {
+                if (mCursorX + mMoveDis < getMeasuredWidth()) {
                     mCursorX = mCursorX + mMoveDis;
                 } else {
-                    mCursorX = getMeasuredWidth() - mPointerX;
+                    mCursorX = getMeasuredWidth();
                 }
                 break;
         }
@@ -187,8 +233,7 @@ class TvCursorView extends FrameLayout {
         mLastCursorX = mCursorX;
         mLastCursorY = mCursorY;
         requestLayout();
-        // 把用于对齐指针所加的偏移量消除
-        sendMotionEvent(mCursorX + mPointerX, mCursorY + mPointerY, MotionEvent.ACTION_MOVE);
+        sendMotionEvent(mCursorX, mCursorY, MotionEvent.ACTION_MOVE);
     }
 
     // 发送鼠标的相关事件
@@ -197,7 +242,7 @@ class TvCursorView extends FrameLayout {
         long eventTime = SystemClock.uptimeMillis();
         int metaState = 0;
         MotionEvent motionEvent = MotionEvent.obtain(downTime, eventTime, action, x, y, metaState);
-        motionEvent.setSource(InputDevice.SOURCE_UNKNOWN);
+        motionEvent.setSource(InputDevice.SOURCE_MOUSE);
         Log.d("Cursor Event", x + "-" + y);
         mTargetView.dispatchTouchEvent(motionEvent);
     }
