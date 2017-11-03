@@ -78,6 +78,8 @@ demo程序提供了最基本的功能体验（为WebView提供鼠标支持），
 
 - 点按拖动由于遥控器的按键冲突可能会有中断（主要发生在换方向的情况下）
 
+- 指针不能移动到Action Bar上
+
 ## 其他
 
 鼠标移动和点击的实现方法最初受Tamicer的[MouseView_TV](https://github.com/Tamicer/MouseView_TV)项目启发，在此感谢

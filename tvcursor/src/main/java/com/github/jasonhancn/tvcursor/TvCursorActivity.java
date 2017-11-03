@@ -19,7 +19,8 @@ public class TvCursorActivity extends AppCompatActivity {
     @Override
     public void setContentView(int layoutResID) {
         LayoutInflater inflater = getLayoutInflater();
-        contentView = (ViewGroup) inflater.inflate(layoutResID, null);
+        ViewGroup viewGroup = (ViewGroup) inflater.inflate(R.layout.full, null);
+        contentView = (ViewGroup) inflater.inflate(layoutResID, viewGroup);
         contentView.requestDisallowInterceptTouchEvent(true);
         setContentView(contentView);
         initCursor();
@@ -60,11 +61,11 @@ public class TvCursorActivity extends AppCompatActivity {
         return tvCursorManager.isShowCursor();
     }
 
-    public void setScrollTargetView(View view){
+    public void setScrollTargetView(View view) {
         tvCursorManager.setScrollTargetView(view);
     }
 
-    public void setCursorSize(int size){
+    public void setCursorSize(int size) {
         tvCursorManager.setCursorSize(size);
     }
 
