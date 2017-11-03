@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
 @SuppressLint("Registered")
-public class TvCursorActivity extends AppCompatActivity{
+public class TvCursorActivity extends AppCompatActivity {
     private TvCursorManager tvCursorManager;
     private ViewGroup contentView;
     private boolean isIMEMode = false;
@@ -46,15 +46,15 @@ public class TvCursorActivity extends AppCompatActivity{
         tvCursorManager.showCursorView();
     }
 
-    public void showCursor(){
+    public void showCursor() {
         tvCursorManager.setShowCursor(true);
     }
 
-    public void hideCursor(){
+    public void hideCursor() {
         tvCursorManager.setShowCursor(false);
     }
 
-    public boolean isShowCursor(){
+    public boolean isShowCursor() {
         return tvCursorManager.isShowCursor();
     }
 
