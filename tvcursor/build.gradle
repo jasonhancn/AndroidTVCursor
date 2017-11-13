@@ -1,18 +1,28 @@
+plugins {
+    // Bintray Jcenter的Gradle插件
+    id "com.jfrog.bintray" version "1.8.0"
+    // 让Android的Gradle插件支持Maven install的插件
+    id "com.github.dcendents.android-maven" version "2.0"
+}
+
 apply plugin: 'com.android.library'
+
+// Maven Group ID
+group = 'com.github.jasonhancn'
+// Maven Artifact Version
+version = '0.9'
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('upload.properties').newDataInputStream())
 
 android {
     compileSdkVersion 26
-
-
 
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 26
         versionCode 1
         versionName "0.9"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -26,9 +36,103 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     implementation 'com.android.support:appcompat-v7:26.1.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 }
+
+// 向本地Maven仓库安装组件，并可以生成pom.xml
+install {
+    repositories.mavenInstaller {
+        pom.project {
+            name 'AndroidTVCursor'
+            description 'Use remote controller to emulate mouse cursor on non-touch Android devices such like smart TV.'
+            url 'https://github.com/jasonhancn/AndroidTVCursor'
+            inceptionYear '2017'
+
+            packaging 'aar'
+            groupId 'com.github.jasonhancn'
+            artifactId 'android-tv-cursor'
+            version '0.9'
+
+            licenses {
+                license {
+                    name 'The Apache Software License, Version 2.0'
+                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    distribution 'repo'
+                }
+            }
+
+            scm {
+                connection 'https://github.com/jasonhancn/AndroidTVCursor.git'
+                url 'https://github.com/jasonhancn/AndroidTVCursor'
+
+            }
+
+            developers {
+                developer {
+                    name 'Jason Han'
+                }
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+javadoc {
+    options{
+        encoding "UTF-8"
+        charSet 'UTF-8'
+        author true
+        version true
+        links "http://docs.oracle.com/javase/7/docs/api"
+        title "tvCursorJavaDoc"
+    }
+}
+
+bintray {
+    user = properties.getProperty('bintray_user')
+    key = properties.getProperty('bintray_api_key')
+    configurations = ['archives']
+    pkg {
+        repo = 'AndroidTVCursor'
+        name = 'AndroidTVCursor'
+        userOrg = user
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/jasonhancn/AndroidTVCursor.git'
+        version {
+            name = '0.9'
+            desc = 'First usable version'
+            vcsTag = '0.9'
+            attributes = ['gradle-plugin': 'com.use.less:com.use.less.gradle:gradle-useless-plugin']
+            gpg {
+                sign = true
+                passphrase = properties.getProperty('gpg_password')
+            }
+            mavenCentralSync {
+                sync = true
+                user = properties.getProperty('sonatype_user')
+                password = properties.getProperty('sonatype_password')
+                close = '0' // issue.sonatype.org的issue还没close的时候用0，反之为1
+            }
+        }
+    }
+}
+
