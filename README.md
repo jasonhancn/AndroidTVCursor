@@ -18,6 +18,11 @@
 - 自带了优质的指针图案素材，适用于大部分场景，并可以调整指针大小，更换指针图案，并调整指针尖端位于图片中的位置
 
 ## 使用方法
+- 使用Gradle构建
+
+  ```
+  compile 'com.github.jasonhancn:tvcursor:0.9'
+  ```
 
 - 使用**TvCursorActivity**替代需要使用指针的页面的**AppCompactActivity**即可
 

@@ -50,7 +50,7 @@ install {
 
             packaging 'aar'
             groupId 'com.github.jasonhancn'
-            artifactId 'android-tv-cursor'
+            artifactId 'tvcursor'
             version '0.9'
 
             licenses {
