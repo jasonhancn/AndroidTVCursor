@@ -48,7 +48,7 @@ class TvCursorView extends FrameLayout {
     private int mPointerX;
     private int mPointerY;
     // 是否已经显示了鼠标指针
-    private boolean isShowCursor = false;
+    private boolean isShowCursor = true;
     // 上一次移动的执行时间
     private long mLastMoveTime;
     // 是否执行拖拽操作

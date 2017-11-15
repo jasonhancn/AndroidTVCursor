@@ -10,7 +10,7 @@ apply plugin: 'com.android.library'
 // Maven Group ID
 group = 'com.github.jasonhancn'
 // Maven Artifact Version
-version = '0.9'
+version = '0.9.2'
 
 Properties properties = new Properties()
 properties.load(project.rootProject.file('upload.properties').newDataInputStream())
@@ -22,7 +22,7 @@ android {
         minSdkVersion 14
         targetSdkVersion 26
         versionCode 1
-        versionName "0.9"
+        versionName "0.9.2"
     }
 
     buildTypes {
@@ -51,7 +51,7 @@ install {
             packaging 'aar'
             groupId 'com.github.jasonhancn'
             artifactId 'tvcursor'
-            version '0.9'
+            version '0.9.2'
 
             licenses {
                 license {
@@ -118,9 +118,9 @@ bintray {
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/jasonhancn/AndroidTVCursor.git'
         version {
-            name = '0.9'
-            desc = 'First usable version'
-            vcsTag = '0.9'
+            name = '0.9.2'
+            desc = 'fix some bugs'
+            vcsTag = '0.9.2'
             attributes = ['gradle-plugin': 'com.use.less:com.use.less.gradle:gradle-useless-plugin']
             gpg {
                 sign = true
@@ -130,7 +130,7 @@ bintray {
                 sync = true
                 user = properties.getProperty('sonatype_user')
                 password = properties.getProperty('sonatype_password')
-                close = '0' // issue.sonatype.org的issue还没close的时候用0，反之为1
+                close = '1' // issue.sonatype.org的issue还没close的时候用0，反之为1
             }
         }
     }
