@@ -13,6 +13,7 @@ class TvCursorManager {
         mParentView = parentView;
         Context mContext = parentView.getContext();
         mCursorView = new TvCursorView(mContext, parentView);
+        mCursorView.setVisibility(View.GONE);
     }
 
     boolean isShowCursor() {

@@ -47,7 +47,6 @@ public class TvCursorActivity extends AppCompatActivity {
     private void initCursor() {
         tvCursorManager = new TvCursorManager(contentView);
         tvCursorManager.showCursorView();
-        hideCursor();
     }
 
     public void showCursor() {
