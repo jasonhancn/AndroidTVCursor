@@ -23,6 +23,7 @@ class TvCursorManager {
         if (isShowCursor() != is) {
             mCursorView.setShowCursor(is);
             if (is) {
+                mCursorView.bringToFront();
                 mCursorView.setVisibility(View.VISIBLE);
             } else {
                 mCursorView.setVisibility(View.GONE);
