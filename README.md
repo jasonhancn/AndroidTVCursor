@@ -23,6 +23,14 @@
   ```
   compile 'com.github.jasonhancn:tvcursor:0.9'
   ```
+  
+- 项目里面用到的appcompact包的版本是26.1.0，如果版本不同产生冲突，可以这样
+
+  ```
+  compile ('com.github.jasonhancn:tvcursor:0.9', {
+      exclude group: 'com.android.support', module: 'appcompat-v7'
+  })
+  ```
 
 - 使用**TvCursorActivity**替代需要使用指针的页面的**AppCompactActivity**即可
 
