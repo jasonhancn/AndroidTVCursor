@@ -27,7 +27,7 @@
 - 项目里面用到的appcompact包的版本是26.1.0，如果版本不同产生冲突，可以这样
 
   ```
-  compile ('com.github.jasonhancn:tvcursor:0.9', {
+  compile ('com.github.jasonhancn:tvcursor:0.9.4', {
       exclude group: 'com.android.support', module: 'appcompat-v7'
   })
   ```
